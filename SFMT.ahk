@@ -1,7 +1,5 @@
-Stream-Friendly Music Ticker
-====
-
-(copy-pasted from SFMT.ahk)
+; Stream-Friendly Music Ticker v1
+; https://github.com/gustafsonk/SFMT
 
 ; Description:
 ; This script is intended to make it possible to share the currently playing song from your media
@@ -66,3 +64,113 @@ Stream-Friendly Music Ticker
 ; If you're using OBS to stream and scrolling the text, then you may want to edit PART 3 to make it
 ; look nicer. Other than that, you should be good to go and comfortable editing other things in the
 ; CONFIGURE ME section at the very least.
+
+; CONFIGURE ME (START)
+  ; Getting the media player's window title, assumes no other window titles have this text
+  windowTitle := "Winamp"  ; PART 1: The media player's window title needs to always have this text
+  SetTitleMatchMode 2  ; Look everywhere in window titles for a match, not just the beginning
+  DetectHiddenWindows, on  ; Also check window titles minimized to the system tray
+
+  ; Parsing the media player's window title, use "" to not trim one or both of the sides
+  firstAfter := ""  ; PART 2: Everything left of the first instance of this and itself is trimmed
+  lastBefore := ""  ; PART 2: Same idea above except this trims right and reads right-to-left
+
+  ; Set the output file
+  outputFile := "nowplaying.txt"
+
+  ; Refresh rate in milliseconds for repeating this script
+  refreshRate = 3000
+
+  ; For scrolling text that wraps continuously without spacing (OBS), use "" to not use this
+  scrollSeparator := ""  ; PART 3: Separate the first character from the last character
+  AutoTrim, off  ; Leading/trailing space is ignored by AHK by default
+
+  ; All 3 streaming programs can use UTF-8 to display Unicode characters
+  FileEncoding, UTF-8
+; CONFIGURE ME (END)
+
+
+; PROBABLY DON'T CONFIGURE ME
+  ; Part of the AHK template
+  #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
+  ; #Warn  ; Enable warnings to assist with detecting common errors.
+  SendMode Input  ; Recommended for new scripts due to its superior speed and reliability.
+  SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
+
+  ; Keep the script running forever
+  #Persistent
+
+  ; Main logic of the script
+  Gosub, Update  ; Update immediately on script start
+  SetTimer, Update, %refreshRate%  ; Update forever on a periodic interval
+  return
+
+  Update:
+    ; Get the unparsed title of the media player's window
+    WinGetTitle, title, %windowTitle%
+
+    ; Remove junk at the beginning and end of the title
+    TrimText(title, firstAfter, lastBefore)
+
+    ; Separate the first and last character with a separator for better continuous text scrolling
+    title = %scrollSeparator%%title%
+
+    ; Check if the file needs to be updated with a new title (avoids unneeded disk writing)
+    if !FileEqualsText(outputFile, title)
+    {
+      ; Replace the file for a new title
+      OverwriteFile(outputFile, title)
+    }
+    return
+
+  ; Removes all text before and including the first instance of a substring,
+  ; as well as all text after and including the last instance of another substring
+  TrimText(ByRef text, firstAfter, lastBefore)
+  {
+    StringGetPos, leftIndex, text, %firstAfter%
+    if leftIndex != -1
+    {
+      ; text found, trim the left
+      start := leftIndex + 1 + StrLen(firstAfter)
+    }
+    else
+    {
+      ; text not found, don't trim the left
+      start := 1
+    }
+
+    StringGetPos, rightIndex, text, %lastBefore%, R
+    if (rightIndex != -1 && rightIndex != 0)  ; 0 = empty string even though it's right-to-left
+    {
+      ; text found, trim the right
+      length := rightIndex + 1 - start
+    }
+    else
+    {
+      ; text not found, don't trim the right
+      length := StrLen(text) + 1 - start
+    }
+
+    text := SubStr(text, start, length)
+  }
+
+  ; See if a file's text equals another text
+  FileEqualsText(ByRef file, ByRef text)
+  {
+    FileRead, fileText, %file%
+    if fileText = %text%
+    {
+      return true
+    }
+    else
+    {
+      return false
+    }
+  }
+
+  ; Overwrites a file's text with new text
+  OverwriteFile(ByRef outputFile, ByRef outputText)
+  {
+    FileDelete, %outputFile%
+    FileAppend, %outputText%, %outputFile%
+  }
