@@ -7,7 +7,7 @@
 ; outputting the part you want to a file, and reading the file through a streaming program.
 
 ; Supported Media Players?
-; Winamp, foobar2000, Spotify, YouTube (via web browser), MusicBee, MediaMonkey, VLC, WMP, iTunes, 
+; Winamp, foobar2000, Spotify, YouTube (via web browser), MusicBee, MediaMonkey, VLC, WMP, iTunes,
 ; and any other media player that can display the currently playing song in the title of its window.
 
 ; Supported Streaming Programs?
